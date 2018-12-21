@@ -5,7 +5,7 @@ import datetime
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
-
+from collections import OrderedDict
 
 roles_permissions = db.Table('roles_permissions',
                              db.Column('role_id', db.Integer, db.ForeignKey('role.id')),
@@ -21,8 +21,9 @@ class Role(db.Model):
 
     @staticmethod
     def init_role():
-        roles_permissions_map = {'测试人员': ['COMMON'],
-                                 '管理员': ['COMMON', 'ADMINISTER']}
+        roles_permissions_map = OrderedDict()
+        roles_permissions_map['测试人员'] = ['COMMON']
+        roles_permissions_map['管理员'] = ['COMMON', 'ADMINISTER']
         for role_name in roles_permissions_map:
             role = Role.query.filter_by(name=role_name).first()
             if role is None:
@@ -65,7 +66,7 @@ class User(UserMixin, db.Model):
             print('--' * 30)
             return
         else:
-            user = User(name='管理员', account='admin', password='123456', status=1,role_id=2)
+            user = User(name='管理员', account='admin', password='123456', status=1, role_id=2)
             db.session.add(user)
             db.session.commit()
             print('Administrator account created successfully')
@@ -165,7 +166,6 @@ class ApiMsg(db.Model):
     desc = db.Column(db.String(), nullable=True, comment='接口描述')
     variable_type = db.Column(db.String(), nullable=True, comment='参数类型选择')
     status_url = db.Column(db.String(), nullable=True, comment='基础url,序号对应项目的环境')
-    func_address = db.Column(db.String())
     up_func = db.Column(db.String(), comment='接口执行前的函数')
     down_func = db.Column(db.String(), comment='接口执行后的函数')
     method = db.Column(db.String(), nullable=True, comment='请求方式')

@@ -1,6 +1,8 @@
 import copy
 import json
 
+import sys
+
 from app.models import *
 from httprunner import HttpRunner
 from ..util.global_variable import *
@@ -216,6 +218,16 @@ class RunCase(object):
 
             if api_case.method == 'GET':
                 pass
+
+            elif api_case.variable_type == 'text':
+                for variable in _variables:
+                    if variable['param_type'] == 'string' and variable.get('key'):
+                        temp_case_data['request']['files'].update({variable['key']: (None, variable['value'])})
+                    elif variable['param_type'] == 'file' and variable.get('key'):
+                        temp_case_data['request']['files'].update({variable['key']: (
+                            variable['value'].split('/')[-1], open(variable['value'], 'rb'),
+                            CONTENT_TYPE['.{}'.format(variable['value'].split('.')[-1])])})
+
             elif api_case.variable_type == 'data':
                 for variable in _variables:
                     if variable['param_type'] == 'string' and variable.get('key'):
@@ -258,6 +270,7 @@ class RunCase(object):
             temp_case_data['output'] = ['token']
 
         return temp_case_data
+
 
     def all_cases_data(self):
         temp_case = []
@@ -316,7 +329,7 @@ class RunCase(object):
 
     def run_case(self):
         now_time = datetime.datetime.now()
-
+        # current_app.logger.info('begin to run cases')
         if self.run_type and self.make_report:
             new_report = Report(
                 case_names=','.join([Case.query.filter_by(id=scene_id).first().name for scene_id in self.case_ids]),
@@ -325,6 +338,7 @@ class RunCase(object):
             db.session.add(new_report)
             db.session.commit()
         d = self.all_cases_data()
+        # current_app.logger.info('cases message: {}'.format(d))
         res = main_ate(d)
 
         res['time']['duration'] = "%.2f" % res['time']['duration']
@@ -346,7 +360,6 @@ class RunCase(object):
                 res['stat']['failures_scene'] += 1
 
         res['time']['start_at'] = now_time.strftime('%Y/%m/%d %H:%M:%S')
-        print(res)
         jump_res = json.dumps(res, ensure_ascii=False, default=encode_object)
         if self.run_type and self.make_report:
             self.new_report_id = Report.query.filter_by(
